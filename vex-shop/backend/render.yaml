@@ -2,8 +2,11 @@ services:
   - type: web
     name: vexshop-backend
     env: node
+    region: oregon  # Puedes cambiarlo a la región que prefieras
     buildCommand: npm install
     startCommand: npm start
+    healthCheckPath: /api/auth/setup-status
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,10 +17,14 @@ services:
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: 5432
+        sync: false
       - key: DB_NAME
         sync: false
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
         sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: FRONTEND_URL
+        value: https://horarioempresarial.netlify.app

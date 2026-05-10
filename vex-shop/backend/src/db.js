@@ -8,11 +8,18 @@ const pool = new Pool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   ssl: process.env.DB_SSL === 'true' ? {
-    rejectUnauthorized: false,
-    cert: process.env.DB_SSL_CERT ? require('fs').readFileSync(process.env.DB_SSL_CERT) : undefined,
-    key: process.env.DB_SSL_KEY ? require('fs').readFileSync(process.env.DB_SSL_KEY) : undefined,
-    ca: process.env.DB_SSL_CA ? require('fs').readFileSync(process.env.DB_SSL_CA) : undefined,
+    rejectUnauthorized: false, // Importante para Aiven
+    // Aiven maneja los certificados automáticamente
   } : false,
+});
+
+// Verificar conexión
+pool.on('connect', () => {
+  console.log('Conectado a la base de datos Aiven');
+});
+
+pool.on('error', (err) => {
+  console.error('Error en la conexión a la base de datos:', err);
 });
 
 module.exports = pool;
