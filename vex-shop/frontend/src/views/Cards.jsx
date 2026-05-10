@@ -14,7 +14,7 @@ function CardPreview({ card }) {
       position: 'relative',
       boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
       flexShrink: 0,
-      background: '#0f1432',
+      background: '#080b1b',
     }}>
       {/* Fondo imagen tienda */}
       <div style={{
