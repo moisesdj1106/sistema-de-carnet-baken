@@ -1,0 +1,289 @@
+:root {
+  --vex-red: #cc0000;
+  --vex-red-dark: #a80000;
+  --vex-red-light: #fff0f0;
+  --vex-black: #1a1a2e;
+  --vex-white: #ffffff;
+  --vex-bg: #f7f8fc;
+  --vex-border: #e8eaf0;
+  --vex-text: #2d2d3a;
+  --vex-muted: #8a8fa8;
+  --vex-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--vex-bg);
+  color: var(--vex-text);
+}
+
+/* ── Buttons ── */
+.btn-vex {
+  background: var(--vex-red);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-vex:hover { background: var(--vex-red-dark); transform: translateY(-1px); }
+.btn-vex:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.btn-vex-outline {
+  background: transparent;
+  color: var(--vex-red);
+  border: 2px solid var(--vex-red);
+  border-radius: 8px;
+  padding: 7px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-vex-outline:hover { background: var(--vex-red); color: white; }
+
+/* ── Cards ── */
+.vex-card {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--vex-shadow);
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid var(--vex-border);
+}
+
+/* ── Badges ── */
+.badge-entry {
+  background: #e8f5e9; color: #2e7d32;
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+.badge-exit {
+  background: #fce4e4; color: #c62828;
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+
+/* ── Table ── */
+.vex-table { width: 100%; border-collapse: collapse; }
+.vex-table th {
+  background: #f7f8fc;
+  color: var(--vex-muted);
+  padding: 13px 18px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--vex-border);
+}
+.vex-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--vex-border);
+  font-size: 14px;
+  color: var(--vex-text);
+}
+.vex-table tbody tr:last-child td { border-bottom: none; }
+.vex-table tbody tr:hover td { background: #fafbff; }
+
+/* ── Stat cards ── */
+.stat-card {
+  background: white;
+  border-radius: 16px;
+  padding: 22px 24px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  box-shadow: var(--vex-shadow);
+  border: 1px solid var(--vex-border);
+  transition: transform 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); }
+.stat-icon {
+  width: 52px; height: 52px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; font-size: 24px;
+  flex-shrink: 0;
+}
+.stat-value { font-size: 30px; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 13px; color: var(--vex-muted); margin-top: 3px; }
+
+/* ── ID Card (tarjeta física) ── */
+.id-card-preview {
+  width: 100%;
+  max-width: 420px;
+  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+  border-radius: 20px;
+  padding: 28px 28px 24px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+}
+.id-card-preview::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--vex-red), #ff4444);
+}
+.id-card-preview::after {
+  content: '';
+  position: absolute;
+  bottom: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: rgba(204,0,0,0.08);
+}
+.id-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.id-card-company { font-size: 20px; font-weight: 900; letter-spacing: 3px; color: white; }
+.id-card-company span { color: var(--vex-red); }
+.id-card-subtitle { font-size: 9px; color: rgba(255,255,255,0.4); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 2px; }
+.id-card-body { display: flex; gap: 20px; align-items: center; }
+.id-card-photo {
+  width: 88px; height: 88px;
+  border-radius: 14px;
+  border: 3px solid var(--vex-red);
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(204,0,0,0.3);
+}
+.id-card-photo-placeholder {
+  width: 88px; height: 88px;
+  border-radius: 14px;
+  border: 3px solid var(--vex-red);
+  background: rgba(255,255,255,0.05);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; flex-shrink: 0;
+}
+.id-card-info { flex: 1; min-width: 0; }
+.id-card-name { font-size: 17px; font-weight: 800; margin: 0 0 4px; line-height: 1.2; }
+.id-card-position {
+  font-size: 11px; color: var(--vex-red);
+  font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;
+}
+.id-card-cedula { font-size: 12px; color: rgba(255,255,255,0.5); }
+.id-card-footer {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-top: 20px; padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.id-card-code-label { font-size: 9px; color: rgba(255,255,255,0.35); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+.id-card-code-value { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.8); font-family: monospace; }
+.id-card-qr { width: 56px; height: 56px; border-radius: 8px; background: white; padding: 4px; }
+
+/* ── Login / Scan pages ── */
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.login-box {
+  background: white;
+  border-radius: 20px;
+  padding: 44px 40px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+}
+.login-logo {
+  color: var(--vex-red);
+  font-size: 34px;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 4px;
+  margin-bottom: 4px;
+}
+.login-sub { color: var(--vex-muted); text-align: center; font-size: 13px; margin-bottom: 32px; }
+.login-input {
+  width: 100%;
+  background: var(--vex-bg);
+  border: 1.5px solid var(--vex-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--vex-text);
+  font-size: 14px;
+  margin-bottom: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.login-input:focus { border-color: var(--vex-red); background: white; }
+
+/* ── Scan page ── */
+.scan-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.scan-logo { color: white; font-size: 34px; font-weight: 900; letter-spacing: 4px; margin-bottom: 4px; }
+.scan-logo span { color: var(--vex-red); }
+.scan-subtitle { color: rgba(255,255,255,0.45); margin-bottom: 32px; font-size: 13px; letter-spacing: 1px; }
+.scan-box {
+  background: white;
+  border-radius: 20px;
+  padding: 32px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.3);
+}
+.scan-result {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 20px;
+  text-align: center;
+  border-top: 4px solid var(--vex-red);
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+}
+.scan-result img {
+  width: 88px; height: 88px; border-radius: 50%;
+  border: 3px solid var(--vex-red); object-fit: cover; margin-bottom: 12px;
+}
+.scan-result .worker-name { font-size: 20px; font-weight: 800; color: var(--vex-text); }
+.scan-result .worker-pos { font-size: 13px; color: var(--vex-muted); margin-bottom: 14px; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .vex-table { font-size: 12px; }
+  .vex-table th, .vex-table td { padding: 10px 10px; }
+  .login-box, .scan-box { padding: 28px 20px; }
+  .id-card-preview { max-width: 100%; }
+  .stat-value { font-size: 24px; }
+  .stat-card { padding: 16px; gap: 12px; }
+  .stat-icon { width: 44px; height: 44px; font-size: 20px; }
+  .vex-card { padding: 16px; }
+}
+
+/* Tablas con scroll horizontal en móvil */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 480px) {
+  .vex-table th, .vex-table td { padding: 8px 8px; font-size: 12px; }
+  .login-box { padding: 24px 16px; }
+  .scan-box { padding: 20px 14px; }
+  .btn-vex, .btn-vex-outline { font-size: 13px; padding: 8px 14px; }
+}
