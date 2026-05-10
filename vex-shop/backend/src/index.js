@@ -7,7 +7,7 @@ const app = express();
 
 const allowedOrigins = process.env.FRONTEND_URL
   ? [process.env.FRONTEND_URL]
-  : ['http://localhost:5173', 'https://vexshop.netlify.app'];
+  : ['http://localhost:5173', 'https://horarioempresarial.netlify.app'];
 
 app.use(cors({
   origin: (origin, callback) => {
