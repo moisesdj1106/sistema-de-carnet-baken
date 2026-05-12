@@ -79,10 +79,38 @@ app.get('/', (req, res) => {
 });
 
 // Rutas de la API
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/workers', require('./routes/workers'));
-app.use('/api/cards', require('./routes/cards'));
-app.use('/api/attendance', require('./routes/attendance'));
+console.log('Cargando rutas de la API...');
+try {
+  console.log('Cargando auth...');
+  app.use('/api/auth', require('./routes/auth'));
+  console.log('✓ auth cargado');
+} catch (error) {
+  console.error('✗ Error cargando auth:', error.message);
+}
+
+try {
+  console.log('Cargando workers...');
+  app.use('/api/workers', require('./routes/workers'));
+  console.log('✓ workers cargado');
+} catch (error) {
+  console.error('✗ Error cargando workers:', error.message);
+}
+
+try {
+  console.log('Cargando cards...');
+  app.use('/api/cards', require('./routes/cards'));
+  console.log('✓ cards cargado');
+} catch (error) {
+  console.error('✗ Error cargando cards:', error.message);
+}
+
+try {
+  console.log('Cargando attendance...');
+  app.use('/api/attendance', require('./routes/attendance'));
+  console.log('✓ attendance cargado');
+} catch (error) {
+  console.error('✗ Error cargando attendance:', error.message);
+}
 
 // Manejo de errores 404
 app.use('*', (req, res) => {
