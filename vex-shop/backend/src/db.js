@@ -9,7 +9,7 @@ const pool = new Pool({
   password: process.env.DB_PASSWORD,
   ssl: process.env.DB_SSL === 'true' ? {
     rejectUnauthorized: false, // Importante para Aiven
-    // Aiven maneja los certificados automáticamente
+    // Aiven maneja los certificados oooautomáticamente
   } : false,
 });
 
