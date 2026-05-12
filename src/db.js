@@ -15,7 +15,7 @@ const pool = new Pool({
 
 // Verificar conexión
 pool.on('connect', () => {
-  console.log('Conectado a la base de datos');
+  console.log('Conectado a la base de datos Aiven');
 });
 
 pool.on('error', (err) => {
