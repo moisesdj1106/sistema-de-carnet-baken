@@ -63,29 +63,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Ruta de prueba para verificar que las rutas se cargan
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'Ruta de prueba funciona',
-    routes: {
-      auth: '/api/auth',
-      workers: '/api/workers', 
-      cards: '/api/cards',
-      attendance: '/api/attendance'
-    }
-  });
-});
-
-// Ruta de prueba específica para workers
-app.get('/api/workers/test', (req, res) => {
-  res.json({ message: 'Ruta de prueba de workers funciona' });
-});
-
-// Ruta de prueba específica para attendance
-app.get('/api/attendance/test', (req, res) => {
-  res.json({ message: 'Ruta de prueba de attendance funciona' });
-});
-
 // Ruta de bienvenida
 app.get('/', (req, res) => {
   res.json({
@@ -102,38 +79,10 @@ app.get('/', (req, res) => {
 });
 
 // Rutas de la API
-console.log('Cargando rutas de la API...');
-try {
-  console.log('Cargando auth...');
-  app.use('/api/auth', require('./routes/auth'));
-  console.log('✓ auth cargado');
-} catch (error) {
-  console.error('✗ Error cargando auth:', error.message);
-}
-
-try {
-  console.log('Cargando workers...');
-  app.use('/api/workers', require('./routes/workers'));
-  console.log('✓ workers cargado');
-} catch (error) {
-  console.error('✗ Error cargando workers:', error.message);
-}
-
-try {
-  console.log('Cargando cards...');
-  app.use('/api/cards', require('./routes/cards'));
-  console.log('✓ cards cargado');
-} catch (error) {
-  console.error('✗ Error cargando cards:', error.message);
-}
-
-try {
-  console.log('Cargando attendance...');
-  app.use('/api/attendance', require('./routes/attendance'));
-  console.log('✓ attendance cargado');
-} catch (error) {
-  console.error('✗ Error cargando attendance:', error.message);
-}
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/workers', require('./routes/workers'));
+app.use('/api/cards', require('./routes/cards'));
+app.use('/api/attendance', require('./routes/attendance'));
 
 // Manejo de errores 404
 app.use('*', (req, res) => {

@@ -7,12 +7,15 @@ const router = express.Router();
 // Escanear tarjeta para registro de asistencia
 router.post('/scan', async (req, res) => {
   try {
+    console.log('📱 Recibiendo solicitud de escaneo');
     const { card_code } = req.body;
 
     if (!card_code) {
       return res.status(400).json({ error: 'Código de tarjeta es requerido' });
     }
 
+    console.log('🔍 Buscando tarjeta con código:', card_code);
+    
     // Buscar la tarjeta
     const cardResult = await pool.query(`
       SELECT c.*, w.full_name, w.cedula, p.name as position_name, w.photo_url
