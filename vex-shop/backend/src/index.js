@@ -63,6 +63,29 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Ruta de prueba para verificar que las rutas se cargan
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'Ruta de prueba funciona',
+    routes: {
+      auth: '/api/auth',
+      workers: '/api/workers', 
+      cards: '/api/cards',
+      attendance: '/api/attendance'
+    }
+  });
+});
+
+// Ruta de prueba específica para workers
+app.get('/api/workers/test', (req, res) => {
+  res.json({ message: 'Ruta de prueba de workers funciona' });
+});
+
+// Ruta de prueba específica para attendance
+app.get('/api/attendance/test', (req, res) => {
+  res.json({ message: 'Ruta de prueba de attendance funciona' });
+});
+
 // Ruta de bienvenida
 app.get('/', (req, res) => {
   res.json({
