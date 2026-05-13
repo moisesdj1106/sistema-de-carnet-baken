@@ -171,8 +171,8 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
 // Eliminar foto de trabajador
 router.delete('/:id/photo', authMiddleware, adminMiddleware, async (req, res) => {
   try {
-    console.log('🗑️  Recibiendo solicitud para eliminar foto del trabajador ID:', id);
     const { id } = req.params;
+    console.log('🗑️  Recibiendo solicitud para eliminar foto del trabajador ID:', id);
 
     // Verificar si el trabajador existe y obtener su foto
     const existingWorker = await pool.query(

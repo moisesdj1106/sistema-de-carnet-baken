@@ -96,7 +96,10 @@ router.post('/scan', async (req, res) => {
     const attendance = attendanceResult.rows[0];
 
     res.json({
+      success: true,
       message: message,
+      event_type: attendance.event_type, // Para compatibilidad con frontend existente
+      logged_at: attendance.logged_at,   // Para compatibilidad con frontend existente
       attendance: {
         id: attendance.id,
         event_type: attendance.event_type,
