@@ -48,23 +48,56 @@ router.get('/:id/photo', async (req, res) => {
     const { id } = req.params;
     
     const result = await pool.query(
-      'SELECT photo_data FROM workers WHERE id = $1',
+      'SELECT photo_data, photo_url FROM workers WHERE id = $1',
       [id]
     );
     
-    if (result.rows.length === 0 || !result.rows[0].photo_data) {
-      return res.status(404).json({ error: 'Foto no encontrada' });
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Trabajador no encontrado' });
     }
     
-    // Obtener el tipo MIME de la imagen (asumimos JPEG por defecto)
-    const photoData = result.rows[0].photo_data;
+    const worker = result.rows[0];
     
-    // Configurar headers para imagen
-    res.setHeader('Content-Type', 'image/jpeg');
-    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
+    // Opción 1: Si hay photo_data (bytea en la base de datos)
+    if (worker.photo_data) {
+      // Configurar headers para imagen
+      res.setHeader('Content-Type', 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
+      
+      // Enviar datos binarios
+      return res.send(worker.photo_data);
+    }
     
-    // Enviar datos binarios
-    res.send(photoData);
+    // Opción 2: Si hay photo_url (ruta de archivo)
+    if (worker.photo_url) {
+      // Construir ruta completa al archivo
+      const filePath = path.join(__dirname, '..', '..', worker.photo_url);
+      
+      // Verificar si el archivo existe
+      if (fs.existsSync(filePath)) {
+        // Determinar tipo MIME basado en extensión
+        const ext = path.extname(filePath).toLowerCase();
+        let contentType = 'image/jpeg'; // Por defecto
+        
+        if (ext === '.png') contentType = 'image/png';
+        else if (ext === '.gif') contentType = 'image/gif';
+        else if (ext === '.webp') contentType = 'image/webp';
+        
+        // Configurar headers
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        
+        // Leer y enviar el archivo
+        const fileData = fs.readFileSync(filePath);
+        return res.send(fileData);
+      } else {
+        console.warn(`Archivo no encontrado: ${filePath}`);
+        return res.status(404).json({ error: 'Archivo de foto no encontrado' });
+      }
+    }
+    
+    // Si no hay foto
+    return res.status(404).json({ error: 'Foto no encontrada' });
   } catch (error) {
     console.error('Error al obtener foto:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
