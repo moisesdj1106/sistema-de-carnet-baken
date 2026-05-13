@@ -7,20 +7,8 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configuración de multer para subida de imágenes
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = process.env.UPLOAD_DIR || './uploads';
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'worker-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Configuración de multer para subida de imágenes (en memoria para almacenar en DB)
+const storage = multer.memoryStorage(); // Almacena en memoria para convertir a bytea
 
 const upload = multer({
   storage: storage,
@@ -38,11 +26,11 @@ const upload = multer({
   }
 });
 
-// Obtener todos los trabajadores
+// Obtener todos los trabajadores (sin datos binarios de foto)
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT w.*, p.name as position_name 
+      SELECT w.id, w.full_name, w.cedula, w.position_id, w.email, w.phone, w.photo_url, w.created_at, p.name as position_name 
       FROM workers w 
       LEFT JOIN positions p ON w.position_id = p.id 
       ORDER BY w.created_at DESC
@@ -50,6 +38,35 @@ router.get('/', authMiddleware, async (req, res) => {
     res.json(result.rows);
   } catch (error) {
     console.error('Error al obtener trabajadores:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Obtener foto de trabajador
+router.get('/:id/photo', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(
+      'SELECT photo_data FROM workers WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0 || !result.rows[0].photo_data) {
+      return res.status(404).json({ error: 'Foto no encontrada' });
+    }
+    
+    // Obtener el tipo MIME de la imagen (asumimos JPEG por defecto)
+    const photoData = result.rows[0].photo_data;
+    
+    // Configurar headers para imagen
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
+    
+    // Enviar datos binarios
+    res.send(photoData);
+  } catch (error) {
+    console.error('Error al obtener foto:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -85,15 +102,20 @@ router.post('/', authMiddleware, adminMiddleware, upload.single('photo'), async 
     }
 
     let photo_url = null;
+    let photo_data = null;
+    
     if (req.file) {
-      photo_url = `/uploads/${req.file.filename}`;
+      // Convertir buffer a bytea para PostgreSQL
+      photo_data = req.file.buffer;
+      // También mantener photo_url por compatibilidad (opcional)
+      photo_url = `/api/workers/${req.file.originalname}/photo`; // Ruta para obtener la foto
     }
 
     const result = await pool.query(
-      `INSERT INTO workers (full_name, cedula, position_id, email, phone, photo_url) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
-       RETURNING *`,
-      [full_name, cedula, position_id || null, email || null, phone || null, photo_url]
+      `INSERT INTO workers (full_name, cedula, position_id, email, phone, photo_url, photo_data) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       RETURNING id, full_name, cedula, position_id, email, phone, photo_url, created_at`,
+      [full_name, cedula, position_id || null, email || null, phone || null, photo_url, photo_data]
     );
 
     res.status(201).json({
@@ -137,25 +159,29 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
     }
 
     let photo_url = existingWorker.rows[0].photo_url;
+    let photo_data = existingWorker.rows[0].photo_data;
     
-    // Si se sube una nueva foto, eliminar la anterior si existe
+    // Si se sube una nueva foto
     if (req.file) {
-      // Eliminar foto anterior si existe
-      if (photo_url) {
-        const oldPhotoPath = path.join(__dirname, '..', '..', photo_url);
-        if (fs.existsSync(oldPhotoPath)) {
-          fs.unlinkSync(oldPhotoPath);
-        }
-      }
-      photo_url = `/uploads/${req.file.filename}`;
+      // Actualizar photo_data con el nuevo buffer
+      photo_data = req.file.buffer;
+      // Actualizar photo_url por compatibilidad
+      photo_url = `/api/workers/${req.file.originalname}/photo`;
+    }
+    
+    // Si se solicita eliminar la foto (remove_photo = true en el body)
+    if (req.body.remove_photo === 'true' || req.body.remove_photo === true) {
+      // Eliminar foto de la base de datos
+      photo_data = null;
+      photo_url = null;
     }
 
     const result = await pool.query(
       `UPDATE workers 
-       SET full_name = $1, cedula = $2, position_id = $3, email = $4, phone = $5, photo_url = $6 
-       WHERE id = $7 
-       RETURNING *`,
-      [full_name, cedula, position_id || null, email || null, phone || null, photo_url, id]
+       SET full_name = $1, cedula = $2, position_id = $3, email = $4, phone = $5, photo_url = $6, photo_data = $7
+       WHERE id = $8 
+       RETURNING id, full_name, cedula, position_id, email, phone, photo_url, created_at`,
+      [full_name, cedula, position_id || null, email || null, phone || null, photo_url, photo_data, id]
     );
 
     res.json({
@@ -168,66 +194,19 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
   }
 });
 
-// Eliminar foto de trabajador
-router.delete('/:id/photo', authMiddleware, adminMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    console.log('🗑️  Recibiendo solicitud para eliminar foto del trabajador ID:', id);
-
-    // Verificar si el trabajador existe y obtener su foto
-    const existingWorker = await pool.query(
-      'SELECT id, photo_url FROM workers WHERE id = $1',
-      [id]
-    );
-
-    if (existingWorker.rows.length === 0) {
-      return res.status(404).json({ error: 'Trabajador no encontrado' });
-    }
-
-    // Eliminar foto si existe
-    const photo_url = existingWorker.rows[0].photo_url;
-    if (photo_url) {
-      const photoPath = path.join(__dirname, '..', '..', photo_url);
-      if (fs.existsSync(photoPath)) {
-        fs.unlinkSync(photoPath);
-      }
-    }
-
-    // Actualizar trabajador para eliminar la referencia a la foto
-    await pool.query(
-      'UPDATE workers SET photo_url = NULL WHERE id = $1',
-      [id]
-    );
-
-    res.json({ message: 'Foto eliminada exitosamente' });
-  } catch (error) {
-    console.error('Error al eliminar foto:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-
 // Eliminar trabajador
 router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Verificar si el trabajador existe y obtener su foto
+    // Verificar si el trabajador existe
     const existingWorker = await pool.query(
-      'SELECT id, photo_url FROM workers WHERE id = $1',
+      'SELECT id FROM workers WHERE id = $1',
       [id]
     );
 
     if (existingWorker.rows.length === 0) {
       return res.status(404).json({ error: 'Trabajador no encontrado' });
-    }
-
-    // Eliminar foto si existe
-    const photo_url = existingWorker.rows[0].photo_url;
-    if (photo_url) {
-      const photoPath = path.join(__dirname, '..', '..', photo_url);
-      if (fs.existsSync(photoPath)) {
-        fs.unlinkSync(photoPath);
-      }
     }
 
     // Eliminar trabajador (las tarjetas y registros de asistencia se eliminarán en cascada)
