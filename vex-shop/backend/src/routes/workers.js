@@ -30,7 +30,7 @@ const upload = multer({
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT w.id, w.full_name, w.cedula, w.position_id, w.email, w.phone, w.photo_url, w.created_at, p.name as position_name 
+      SELECT w.id, w.full_name, w.cedula, w.position_id, w.email, w.phone, w.photo_data, w.created_at, p.name as position_name 
       FROM workers w 
       LEFT JOIN positions p ON w.position_id = p.id 
       ORDER BY w.created_at DESC
@@ -48,7 +48,7 @@ router.get('/:id/photo', async (req, res) => {
     const { id } = req.params;
     
     const result = await pool.query(
-      'SELECT photo_data, photo_url FROM workers WHERE id = $1',
+      'SELECT photo_data FROM workers WHERE id = $1',
       [id]
     );
     
@@ -60,11 +60,9 @@ router.get('/:id/photo', async (req, res) => {
     
     // Opción 1: Si hay photo_data (bytea en la base de datos)
     if (worker.photo_data) {
-      // Configurar headers para imagen
       res.setHeader('Content-Type', 'image/jpeg');
       res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
       
-      // Enviar datos binarios
       return res.send(worker.photo_data);
     }
     
@@ -145,10 +143,10 @@ router.post('/', authMiddleware, adminMiddleware, upload.single('photo'), async 
     }
 
     const result = await pool.query(
-      `INSERT INTO workers (full_name, cedula, position_id, email, phone, photo_url, photo_data) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) 
-       RETURNING id, full_name, cedula, position_id, email, phone, photo_url, created_at`,
-      [full_name, cedula, position_id || null, email || null, phone || null, photo_url, photo_data]
+      `INSERT INTO workers (full_name, cedula, position_id, email, phone, photo_data) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING id, full_name, cedula, position_id, email, phone, created_at`,
+      [full_name, cedula, position_id || null, email || null, phone || null, photo_data]
     );
 
     res.status(201).json({
@@ -211,10 +209,10 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
 
     const result = await pool.query(
       `UPDATE workers 
-       SET full_name = $1, cedula = $2, position_id = $3, email = $4, phone = $5, photo_url = $6, photo_data = $7
-       WHERE id = $8 
-       RETURNING id, full_name, cedula, position_id, email, phone, photo_url, created_at`,
-      [full_name, cedula, position_id || null, email || null, phone || null, photo_url, photo_data, id]
+       SET full_name = $1, cedula = $2, position_id = $3, email = $4, phone = $5, photo_data = $6
+       WHERE id = $7
+       RETURNING id, full_name, cedula, position_id, email, phone, created_at`,
+      [full_name, cedula, position_id || null, email || null, phone || null, photo_data, id]
     );
 
     res.json({

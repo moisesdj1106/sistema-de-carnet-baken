@@ -9,7 +9,7 @@ const router = express.Router();
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT c.*, w.full_name, w.cedula, w.photo_url, p.name as position_name 
+      SELECT c.*, w.full_name, w.cedula, w.photo_data, p.name as position_name 
       FROM id_cards c 
       JOIN workers w ON c.worker_id = w.id 
       LEFT JOIN positions p ON w.position_id = p.id 
@@ -28,7 +28,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
     const { id } = req.params;
     
     const result = await pool.query(`
-      SELECT c.*, w.full_name, w.cedula, w.email, w.phone, w.photo_url, p.name as position_name 
+      SELECT c.*, w.full_name, w.cedula, w.email, w.phone, w.photo_data, p.name as position_name 
       FROM id_cards c 
       JOIN workers w ON c.worker_id = w.id 
       LEFT JOIN positions p ON w.position_id = p.id 
