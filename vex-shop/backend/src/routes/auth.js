@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const pool = require('../db');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -192,6 +194,33 @@ router.delete('/admins/:id', authMiddleware, adminMiddleware, async (req, res) =
     res.json({ message: 'Administrador eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar administrador:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Subir foto de usuario
+router.post('/upload-photo', authMiddleware, async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'El ID del usuario es requerido' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se proporcionó ninguna foto' });
+    }
+
+    const photoData = req.file.buffer;
+
+    // Guardar la foto en la base de datos
+    await pool.query(
+      'UPDATE users SET photo_data = $1 WHERE id = $2',
+      [photoData, userId]
+    );
+
+    res.status(200).json({ message: 'Foto subida exitosamente' });
+  } catch (error) {
+    console.error('Error al subir la foto:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
