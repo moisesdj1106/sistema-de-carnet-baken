@@ -1,14 +1,13 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const pool = require('../db');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configuración de multer para subida de imágenes (en memoria para almacenar en DB)
-const storage = multer.memoryStorage(); // Almacena en memoria para convertir a bytea
+// Configuración de multer para subida de imágenes (en memoria)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -26,7 +25,7 @@ const upload = multer({
   }
 });
 
-// Obtener todos los trabajadores (sin datos binarios de foto)
+// Obtener todos los trabajadores
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -58,12 +57,13 @@ router.get('/:id/photo', async (req, res) => {
     
     const worker = result.rows[0];
     
-    // Si hay photo_data (bytea en la base de datos)
+    // Si hay photo_data
     if (worker.photo_data) {
+      // Convertir de base64 a buffer
+      const buffer = Buffer.from(worker.photo_data, 'base64');
       res.setHeader('Content-Type', 'image/jpeg');
-      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
-      
-      return res.send(worker.photo_data);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(buffer);
     }
     
     // Si no hay foto
@@ -90,41 +90,81 @@ router.post('/', authMiddleware, adminMiddleware, upload.single('photo'), async 
   try {
     const { full_name, cedula, position_id, email, phone } = req.body;
     
+    // 1. Validación de campos obligatorios
     if (!full_name || !cedula) {
-      return res.status(400).json({ error: 'Nombre completo y cédula son requeridos' });
+      return res.status(400).json({ 
+        error: 'Datos incompletos', 
+        details: 'El nombre completo y la cédula son obligatorios.' 
+      });
     }
 
-    // Verificar si la cédula ya existe
-    const existingWorker = await pool.query(
-      'SELECT id FROM workers WHERE cedula = $1',
-      [cedula]
-    );
+    // 2. Validación de Cédula Duplicada (Doble verificación por seguridad)
+    try {
+      const existingWorker = await pool.query(
+        'SELECT id FROM workers WHERE cedula = $1',
+        [cedula]
+      );
 
-    if (existingWorker.rows.length > 0) {
-      return res.status(400).json({ error: 'La cédula ya está registrada' });
+      if (existingWorker.rows.length > 0) {
+        return res.status(400).json({ error: 'La cédula ya está registrada en el sistema.' });
+      }
+    } catch (dbError) {
+      throw new Error('Error al verificar duplicados: ' + dbError.message);
     }
 
+    // 3. Procesamiento de imagen
     let photo_data = null;
-    
     if (req.file) {
-      // Convertir buffer a bytea para PostgreSQL
-      photo_data = req.file.buffer;
+      // Nota: Si la imagen es muy grande, guardarla en Base64 en Postgres puede ser lento.
+      // Considera que el campo photo_data debe ser tipo TEXT en tu DB.
+      photo_data = req.file.buffer.toString('base64');
     }
 
-    const result = await pool.query(
-      `INSERT INTO workers (full_name, cedula, position_id, email, phone, photo_data) 
-       VALUES (UPPER($1), $2, $3, $4, $5, $6) 
-       RETURNING id, full_name, cedula, position_id, email, phone, created_at`,
-      [full_name, cedula, position_id || null, email || null, phone || null, photo_data]
-    );
+    // 4. Inserción con manejo de errores de BD específicos
+    const query = `
+      INSERT INTO workers (full_name, cedula, position_id, email, phone, photo_data) 
+      VALUES ($1, $2, $3, $4, $5, $6) 
+      RETURNING id, full_name, cedula, position_id, email, phone, created_at
+    `;
+    const values = [full_name, cedula, position_id || null, email || null, phone || null, photo_data];
+
+    const result = await pool.query(query, values);
 
     res.status(201).json({
       message: 'Trabajador creado exitosamente',
       worker: result.rows[0]
     });
+
   } catch (error) {
-    console.error('Error al crear trabajador:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    // REGISTRO EN CONSOLA (Para ti en Render Logs)
+    console.error('--- ERROR DETECTADO ---');
+    console.error('Mensaje:', error.message);
+    console.error('Código Error:', error.code); // Útil para errores de PostgreSQL (ej. 23503)
+    console.error('Stack:', error.stack);
+
+    // RESPUESTA AL CLIENTE
+    // Si el error viene de Postgres (ejemplo: position_id no existe)
+    if (error.code === '23503') {
+      return res.status(400).json({ 
+        error: 'Error de referencia', 
+        details: 'El cargo (position_id) seleccionado no existe.' 
+      });
+    }
+
+    // Error por datos demasiado largos
+    if (error.code === '22001') {
+      return res.status(400).json({ 
+        error: 'Dato demasiado largo', 
+        details: 'Uno de los campos excede el límite de caracteres (posiblemente la foto o el nombre).' 
+      });
+    }
+
+    // Error genérico controlado
+    res.status(500).json({ 
+      error: 'Error interno del servidor', 
+      message: error.message,
+      code: error.code 
+    });
   }
 });
 
@@ -162,13 +202,12 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
     
     // Si se sube una nueva foto
     if (req.file) {
-      // Actualizar photo_data con el nuevo buffer
-      photo_data = req.file.buffer;
+      // Convertir buffer a base64
+      photo_data = req.file.buffer.toString('base64');
     }
     
-    // Si se solicita eliminar la foto (remove_photo = true en el body)
+    // Si se solicita eliminar la foto
     if (req.body.remove_photo === 'true' || req.body.remove_photo === true) {
-      // Eliminar foto de la base de datos
       photo_data = null;
     }
 
@@ -186,7 +225,7 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
     });
   } catch (error) {
     console.error('Error al actualizar trabajador:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    res.status(500).json({ error: 'Error interno del servidor: ' + error.message });
   }
 });
 
@@ -205,7 +244,7 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Trabajador no encontrado' });
     }
 
-    // Eliminar trabajador (las tarjetas y registros de asistencia se eliminarán en cascada)
+    // Eliminar trabajador
     await pool.query('DELETE FROM workers WHERE id = $1', [id]);
 
     res.json({ message: 'Trabajador eliminado exitosamente' });
@@ -216,6 +255,3 @@ router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
 });
 
 module.exports = router;
-
-
-// Ruta para eliminar foto de trabajador - añadido para forzar despliegue
