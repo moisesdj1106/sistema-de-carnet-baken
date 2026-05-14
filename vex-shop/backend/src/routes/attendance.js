@@ -18,7 +18,7 @@ router.post('/scan', async (req, res) => {
     
     // Buscar la tarjeta
     const cardResult = await pool.query(`
-      SELECT c.*, w.full_name, w.cedula, p.name as position_name, w.photo_url
+      SELECT c.*, w.full_name, w.cedula, p.name as position_name
       FROM id_cards c 
       JOIN workers w ON c.worker_id = w.id 
       LEFT JOIN positions p ON w.position_id = p.id 
@@ -111,7 +111,7 @@ router.post('/scan', async (req, res) => {
         full_name: card.full_name,
         cedula: card.cedula,
         position_name: card.position_name,
-        photo_url: card.photo_url
+
       }
     });
   } catch (error) {
@@ -129,7 +129,7 @@ router.get('/today', authMiddleware, async (req, res) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const result = await pool.query(`
-      SELECT a.*, w.full_name, w.cedula, w.photo_url, p.name as position_name, c.card_code 
+      SELECT a.*, w.full_name, w.cedula, p.name as position_name, c.card_code 
       FROM attendance_logs a 
       JOIN workers w ON a.worker_id = w.id 
       LEFT JOIN positions p ON w.position_id = p.id 

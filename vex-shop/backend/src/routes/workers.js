@@ -30,7 +30,7 @@ const upload = multer({
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT w.id, w.full_name, w.cedula, w.position_id, w.email, w.phone, w.photo_data, w.created_at, p.name as position_name 
+      SELECT w.id, w.full_name, w.cedula, w.position_id, w.email, w.phone, w.created_at, p.name as position_name 
       FROM workers w 
       LEFT JOIN positions p ON w.position_id = p.id 
       ORDER BY w.created_at DESC
@@ -58,40 +58,12 @@ router.get('/:id/photo', async (req, res) => {
     
     const worker = result.rows[0];
     
-    // Opción 1: Si hay photo_data (bytea en la base de datos)
+    // Si hay photo_data (bytea en la base de datos)
     if (worker.photo_data) {
       res.setHeader('Content-Type', 'image/jpeg');
       res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache por 24 horas
       
       return res.send(worker.photo_data);
-    }
-    
-    // Opción 2: Si hay photo_url (ruta de archivo)
-    if (worker.photo_url) {
-      // Construir ruta completa al archivo
-      const filePath = path.join(__dirname, '..', '..', worker.photo_url);
-      
-      // Verificar si el archivo existe
-      if (fs.existsSync(filePath)) {
-        // Determinar tipo MIME basado en extensión
-        const ext = path.extname(filePath).toLowerCase();
-        let contentType = 'image/jpeg'; // Por defecto
-        
-        if (ext === '.png') contentType = 'image/png';
-        else if (ext === '.gif') contentType = 'image/gif';
-        else if (ext === '.webp') contentType = 'image/webp';
-        
-        // Configurar headers
-        res.setHeader('Content-Type', contentType);
-        res.setHeader('Cache-Control', 'public, max-age=86400');
-        
-        // Leer y enviar el archivo
-        const fileData = fs.readFileSync(filePath);
-        return res.send(fileData);
-      } else {
-        console.warn(`Archivo no encontrado: ${filePath}`);
-        return res.status(404).json({ error: 'Archivo de foto no encontrado' });
-      }
     }
     
     // Si no hay foto
@@ -132,19 +104,16 @@ router.post('/', authMiddleware, adminMiddleware, upload.single('photo'), async 
       return res.status(400).json({ error: 'La cédula ya está registrada' });
     }
 
-    let photo_url = null;
     let photo_data = null;
     
     if (req.file) {
       // Convertir buffer a bytea para PostgreSQL
       photo_data = req.file.buffer;
-      // También mantener photo_url por compatibilidad (opcional)
-      photo_url = `/api/workers/${req.file.originalname}/photo`; // Ruta para obtener la foto
     }
 
     const result = await pool.query(
       `INSERT INTO workers (full_name, cedula, position_id, email, phone, photo_data) 
-       VALUES ($1, $2, $3, $4, $5, $6) 
+       VALUES (UPPER($1), $2, $3, $4, $5, $6) 
        RETURNING id, full_name, cedula, position_id, email, phone, created_at`,
       [full_name, cedula, position_id || null, email || null, phone || null, photo_data]
     );
@@ -171,7 +140,7 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
 
     // Verificar si el trabajador existe
     const existingWorker = await pool.query(
-      'SELECT id, photo_url FROM workers WHERE id = $1',
+      'SELECT id, photo_data FROM workers WHERE id = $1',
       [id]
     );
 
@@ -189,22 +158,18 @@ router.put('/:id', authMiddleware, adminMiddleware, upload.single('photo'), asyn
       return res.status(400).json({ error: 'La cédula ya está registrada en otro trabajador' });
     }
 
-    let photo_url = existingWorker.rows[0].photo_url;
     let photo_data = existingWorker.rows[0].photo_data;
     
     // Si se sube una nueva foto
     if (req.file) {
       // Actualizar photo_data con el nuevo buffer
       photo_data = req.file.buffer;
-      // Actualizar photo_url por compatibilidad
-      photo_url = `/api/workers/${req.file.originalname}/photo`;
     }
     
     // Si se solicita eliminar la foto (remove_photo = true en el body)
     if (req.body.remove_photo === 'true' || req.body.remove_photo === true) {
       // Eliminar foto de la base de datos
       photo_data = null;
-      photo_url = null;
     }
 
     const result = await pool.query(

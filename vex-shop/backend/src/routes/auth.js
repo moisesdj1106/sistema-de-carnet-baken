@@ -88,7 +88,7 @@ router.post('/register', authMiddleware, adminMiddleware, async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      'INSERT INTO admins (username, password_hash) VALUES ($1, $2) RETURNING id, username, created_at',
+      'INSERT INTO admins (username, password_hash) VALUES (LOWER($1), $2) RETURNING id, username, created_at',
       [username, passwordHash]
     );
 
@@ -135,7 +135,7 @@ router.post('/register-first', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-      'INSERT INTO admins (username, password_hash) VALUES ($1, $2) RETURNING id, username, created_at',
+      'INSERT INTO admins (username, password_hash) VALUES (LOWER($1), $2) RETURNING id, username, created_at',
       [username, passwordHash]
     );
 
