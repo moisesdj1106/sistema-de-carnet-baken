@@ -19,10 +19,8 @@ console.log('Orígenes permitidos:', allowedOrigins);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requests sin origen (como mobile apps o curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+    // Permitir requests sin origen (como las realizadas desde herramientas como curl o Invoke-RestMethod)
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       console.log('Origen bloqueado por CORS:', origin);
